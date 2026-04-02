@@ -4,9 +4,7 @@ import bcrypt from "bcrypt";
 import SignupSchema from "../validation/signup.types";
 import { Prisma } from "../generated/prisma/client";
 import jwt from "jsonwebtoken";
-
-
-const jwt_secret=`${process.env.JWT_SECRET}`
+import { jwt_secret } from "../lib/config";
 
 export const signup = async (req: Request, res: Response) => {
 	const parsed = SignupSchema.safeParse(req.body);
