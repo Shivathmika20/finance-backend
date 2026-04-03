@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { Request, Response, NextFunction } from "express";
 import { jwt_secret } from "../lib/config";
-import { prisma } from '../lib/prisma';
+import  prisma  from '../lib/prisma';
 
 type Role = 'VIEWER' | 'ADMIN' | 'ANALYST'
 

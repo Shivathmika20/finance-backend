@@ -8,10 +8,10 @@ const app = express();
 
 app.use(express.json());
 
-app.use('/auth', authRouter);
-app.use('/records', recordRouter);
-app.use('/users', userRouter);
-app.use('/dashboard', dashboardRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/records', recordRouter);
+app.use('/api/users', userRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 
 

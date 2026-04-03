@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
+import prisma from "../lib/prisma";
 import bcrypt from "bcrypt";
 import SignupSchema from "../validation/signup.types";
 import { Prisma } from "../generated/prisma/client";
@@ -72,9 +72,7 @@ export const signin = async (req: Request, res: Response) => {
 					.status(400)
 					.json({ message: "JWT_SECRET is not set" });
             }
-            const token =jwt.sign({userId:user.id,role:user.role},jwt_secret,{
-                expiresIn:"1h"
-            })
+            const token =jwt.sign({userId:user.id,role:user.role},jwt_secret)
             return res.status(200).json({ token, message: "Login successful" });
             
         }

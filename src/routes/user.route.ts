@@ -5,7 +5,7 @@ import { getAllUsers,toggleStatus,getUser,assignRole } from "../controllers/user
 const userRouter = Router();
 
 userRouter.get('/',verifyJwt, allowRoles('ADMIN'), getAllUsers)
-userRouter.get('/user/:id',verifyJwt, allowRoles('ADMIN') ,getUser)
+userRouter.get('/:id',verifyJwt, allowRoles('ADMIN') ,getUser)
 userRouter.patch('/:id/role',verifyJwt,allowRoles('ADMIN'),assignRole)
 userRouter.patch('/:id/status',verifyJwt,allowRoles('ADMIN'), toggleStatus)
 

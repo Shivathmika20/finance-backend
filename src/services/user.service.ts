@@ -1,5 +1,5 @@
 
-import { prisma } from "../lib/prisma";
+import  prisma  from "../lib/prisma";
 import {assignRoleSchema} from '../validation/assignrole.type'
 
 export const assignRoleService=async (
