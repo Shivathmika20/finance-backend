@@ -4,10 +4,12 @@ import { createRecordSchema,updateRecordSchema } from "../validation/record.type
 import { createRecordService } from "../services/record.service";
 
 
-
-
 export const getAllRecords=async (req:Request,res:Response)=>{
-    const records=await prisma.record.findMany()
+    const records=await prisma.record.findMany({
+        where:{
+            isDeleted:false
+        }
+    })
     if(!records){
         return res.status(404).json({message:"No records found"})
     }
@@ -64,7 +66,7 @@ export const updateRecord=async (req:Request,res:Response)=>{
             })
         
         if (!existingRecord || existingRecord.isDeleted) {
-           throw new Error("Record not found")
+           return res.status(404).json({message:"Record not found"})
           }
         
         const record=await prisma.record.update({
@@ -84,6 +86,27 @@ export const updateRecord=async (req:Request,res:Response)=>{
     
 }
 
-export const deleteRecord=()=>{
-    
+export const deleteRecord=async (req:Request,res:Response)=>{
+    const recordId = parseInt(req.params['id'] as string)
+
+    try{
+        const existingRecord=await prisma.record.findUnique({
+            where:{id:recordId}
+            })
+        
+        if (!existingRecord || existingRecord.isDeleted) {
+           return res.status(404).json({message:"Record not found"})
+          }
+        const record=await prisma.record.update({   //soft deleting
+            where:{id:recordId},
+            data:{
+                isDeleted:true,
+                deletedAt: new Date() 
+            }
+        })
+        return res.status(200).json({message:"Record deleted",record})
+    }
+    catch{
+        return res.status(500).json({ message: "Internal server error" })
+    }
 }
