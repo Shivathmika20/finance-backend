@@ -1,7 +1,7 @@
 import z from "zod";
 
 
-export const recordSchema=z.object({
+export const createRecordSchema=z.object({
     amount:z.number().positive('Amount must be greater than 0'),
     type:z.enum(['INCOME','EXPENSE']),
     category:z.string().min(1,'Category is required'),
@@ -10,3 +10,5 @@ export const recordSchema=z.object({
       }),
     notes:z.string().optional()
 })
+
+export const updateRecordSchema = createRecordSchema.partial()
