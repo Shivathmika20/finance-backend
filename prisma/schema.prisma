@@ -15,6 +15,12 @@ enum Role {
   ANALYST
 }
 
+enum TransactionType{
+  INCOME
+  EXPENSE
+  SAVINGS
+}
+
 model User{
   id String @id @default(uuid())
   username String @unique
@@ -28,10 +34,12 @@ model User{
 
 model Transaction{
   id Int @id @default(autoincrement())
-  type String
-  amount Float
+  type TransactionType 
+  amount Decimal
   category String
   date DateTime
+  isDeleted Boolean @default(false)
+  deletedAt DateTime?
   notes String?
   userId String
   user User @relation (fields:[userId], references: [id])
