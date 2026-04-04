@@ -15,6 +15,7 @@ type Filter= {
   category?: string
   startDate?: string
   endDate?: string
+  search?:string
 }
 
 export const createRecordService=async (
@@ -34,7 +35,7 @@ export const createRecordService=async (
 }
 
 export const getRecordsService = async (filters:Filter) => {
-    const { type, category, startDate, endDate} = filters
+    const { type, category, startDate, endDate, search} = filters
   
      return await prisma.record.findMany({
       where: {
@@ -46,7 +47,15 @@ export const getRecordsService = async (filters:Filter) => {
               ...(startDate && { gte: new Date(startDate) }),
               ...(endDate && { lte: new Date(endDate) })
               }
+        }),
+        ...(search && {
+          OR:[
+            {category:{contains:search}},
+            {notes:{contains:search}}
+          ]
         })
+
+
       },
 
       
