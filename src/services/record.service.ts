@@ -32,6 +32,7 @@ export const createRecordService=async (
     return await prisma.record.create({
         data:{
             ...recordData,
+            category:recordData.category.toLowerCase(),
             date:new Date(recordData.date),
             userId
         }

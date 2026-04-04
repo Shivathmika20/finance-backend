@@ -31,3 +31,27 @@ export const getCategoryTotalsService=async()=>{
     }))
     return result;
 }
+
+
+export const getRecentService=async()=>{
+   return await prisma.record.findMany({
+        orderBy:{
+            createdAt:'desc'
+        },
+        take:5
+    })
+}
+
+export const getTrendsService=async()=>{
+    const trends = await prisma.$queryRaw`
+        SELECT 
+            strftime('%Y-%m', date) as month,
+            type,
+            SUM(CAST(amount AS REAL)) as total
+        FROM "Record"
+        WHERE "isDeleted" = 0
+        GROUP BY month, type
+        ORDER BY month ASC
+    `
+    return trends;
+}
