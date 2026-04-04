@@ -46,7 +46,7 @@ export const assignRole = async (req: Request, res: Response) => {
     const id  =  req.params['id'] as string
     const role=req.body
     try{
-        const user=await assignRoleService(id,role,(req as any).user?.userId)
+        const user=await assignRoleService(id,role,req.user?.userId)
         return res.status(200).json({message:"Role updated",user})
     }
     catch(e){
@@ -63,7 +63,7 @@ export const toggleStatus = async (req: Request, res: Response) => {
     const id  =  req.params['id'] as string
     const {status}=req.body
     try{
-        const user=await toggleStatusService(id,status,(req as any).user?.userId)
+        const user=await toggleStatusService(id,status,req.user?.userId)
         return res.status(200).json({message:"User deactivated",user})
     }
     catch(e){
