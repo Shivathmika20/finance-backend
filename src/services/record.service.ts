@@ -18,7 +18,7 @@ type Filter= {
   search?:string
 }
 
-type Pagination={
+export type Pagination={
   page:number,
   limit:number,
   skip:number,

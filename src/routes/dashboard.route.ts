@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getSummary,getRecentActivity,getTrends,getSummaryByCategory } from "../controllers/dashboard.controller";
 import { allowRoles, verifyJwt } from "../middleware/auth";
+
 const dashboardRouter = Router();
 
 

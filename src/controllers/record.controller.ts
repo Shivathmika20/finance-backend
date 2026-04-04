@@ -5,7 +5,6 @@ import { createRecordService ,getRecordsService} from "../services/record.servic
 
 
 export const getAllRecords=async (req:Request,res:Response)=>{
-
    const data=req.query
    const pageData=req.pagination!
    try{

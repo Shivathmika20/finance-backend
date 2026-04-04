@@ -1,6 +1,7 @@
-
 import  prisma  from "../lib/prisma";
 import {assignRoleSchema} from '../validation/assignrole.type'
+import { Pagination } from "./record.service";
+
 
 export const assignRoleService=async (
     id:string,
@@ -69,4 +70,29 @@ export const toggleStatusService = async (
 
 
 
+}
+
+
+export const getUserPagesService=async(pages:Pagination)=>{
+    const {page,limit,skip}=pages;
+    const users=await prisma.user.findMany({
+        where:{
+            isActive: true,
+        },
+        skip,
+        take:limit,
+        select:{
+          id: true,
+          username: true,
+          email: true,
+          createdAt: true
+        }
+      })
+      return{
+        data:users,
+        page,
+        limit,
+      }
+     
+    
 }

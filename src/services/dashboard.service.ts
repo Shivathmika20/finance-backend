@@ -3,6 +3,7 @@ import prisma from "../lib/prisma";
 export const getTotalServcie=async ()=>{
     const total=await prisma.record.groupBy({
         by:['type'],
+        where: { isDeleted: false }, 
         _sum:{amount:true},
        
     })
@@ -38,6 +39,8 @@ export const getRecentService=async()=>{
         orderBy:{
             createdAt:'desc'
         },
+        where: { isDeleted: false }, 
+        
         take:5
     })
 }
