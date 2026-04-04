@@ -1,22 +1,23 @@
-import { Request, Response } from "express";
+import e, { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { createRecordSchema,updateRecordSchema } from "../validation/record.type";
-import { createRecordService } from "../services/record.service";
+import { createRecordService ,getRecordsService} from "../services/record.service";
 
 
 export const getAllRecords=async (req:Request,res:Response)=>{
-    const records=await prisma.record.findMany({
-        where:{
-            isDeleted:false
-        }
-    })
-    if(!records){
-        return res.status(404).json({message:"No records found"})
-    }
+
+   const data=req.query
+   try{
+    const record=await getRecordsService(data)
     return res.status(200).json({
-        message:"Records fetched successfully",
-        records
+        data:record,
+        count:record.length
     })
+   }
+   catch(e){
+    return res.status(500).json({ message: "Internal server error" ,e})
+
+   }
 }
 
 export const getRecord=async (req:Request,res:Response)=>{
@@ -25,9 +26,9 @@ export const getRecord=async (req:Request,res:Response)=>{
     where:{id:recordId}
     })
 
-   if (!record || record.isDeleted) {
-    return res.status(404).json({ message: 'Record not found' })
-  }
+    if (!record || record.isDeleted) {
+        return res.status(404).json({ message: 'Record not found' })
+    }
 
     return res.status(200).json(record)
 

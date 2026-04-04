@@ -10,6 +10,13 @@ type RecordInput ={
     notes?: string
   }
 
+type Filter= {
+  type?: RecordType
+  category?: string
+  startDate?: string
+  endDate?: string
+}
+
 export const createRecordService=async (
     recordData:RecordInput,
     userId:string
@@ -25,5 +32,26 @@ export const createRecordService=async (
    
 
 }
+
+export const getRecordsService = async (filters:Filter) => {
+    const { type, category, startDate, endDate} = filters
+  
+     return await prisma.record.findMany({
+      where: {
+        isDeleted: false,
+        ...(type && { type }),
+        ...(category && { category }),
+        ...((startDate || endDate) && {
+            date: {
+              ...(startDate && { gte: new Date(startDate) }),
+              ...(endDate && { lte: new Date(endDate) })
+              }
+        })
+      },
+
+      
+    })
+    
+  }
 
 
