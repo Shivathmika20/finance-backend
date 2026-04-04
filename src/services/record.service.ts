@@ -18,6 +18,12 @@ type Filter= {
   search?:string
 }
 
+type Pagination={
+  page:number,
+  limit:number,
+  skip:number,
+
+}
 export const createRecordService=async (
     recordData:RecordInput,
     userId:string
@@ -34,11 +40,11 @@ export const createRecordService=async (
 
 }
 
-export const getRecordsService = async (filters:Filter) => {
+export const getRecordsService = async (filters:Filter,pages:Pagination) => {
     const { type, category, startDate, endDate, search} = filters
-  
-     return await prisma.record.findMany({
-      where: {
+    const {page,limit,skip}=pages
+
+     const where= {
         isDeleted: false,
         ...(type && { type }),
         ...(category && { category }),
@@ -54,13 +60,34 @@ export const getRecordsService = async (filters:Filter) => {
             {notes:{contains:search}}
           ]
         })
-
-
-      },
-
+      }
       
-    })
+      const [records,total]=await Promise.all([
+        prisma.record.findMany({
+          where,
+          skip,
+          take:limit,
+          select:{
+            id: true,
+            type: true,
+            amount: true,
+            category: true,
+            date: true,
+            notes: true,
+            createdAt: true
+          }
+        }),
+        prisma.record.count({where})
+      ])
+      return{
+        data:records,
+        total,
+        page,
+        limit,
+        totalPages:Math.ceil(total/limit)
+      }
+    }
     
-  }
+  
 
 

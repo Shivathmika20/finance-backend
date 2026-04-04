@@ -13,7 +13,7 @@ export const verifyJwt=async (req:Request,res:Response,next:NextFunction)=>{
 
     }
     try{
-        const decoded=jwt.verify(token,jwt_secret);
+        const decoded=jwt.verify(token,jwt_secret) as { userId: string; role: Role };
         if (!decoded || typeof decoded === "string" || !decoded.userId) {
         return res
             .status(403)
@@ -34,8 +34,8 @@ export const verifyJwt=async (req:Request,res:Response,next:NextFunction)=>{
             return res.status(403).json({message:'Account has been deactivated'})
         }
       
-        (req as any).user=decoded;
-        // console.log(decoded.userId)
+        req.user=decoded;
+       
         next(); 
     }
     catch{
@@ -46,7 +46,7 @@ export const verifyJwt=async (req:Request,res:Response,next:NextFunction)=>{
 
 export const allowRoles=(...roles: Role[])=>{
     return (req:Request,res:Response,next:NextFunction)=>{
-        if(!roles.includes((req as any).user.role)){
+        if(!roles.includes(req.user!.role)){
             return res.status(403).json({message:"Access denied"})
         }
         next()

@@ -1,4 +1,4 @@
-import e, { Request, Response } from "express";
+import  { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { createRecordSchema,updateRecordSchema } from "../validation/record.type";
 import { createRecordService ,getRecordsService} from "../services/record.service";
@@ -7,11 +7,11 @@ import { createRecordService ,getRecordsService} from "../services/record.servic
 export const getAllRecords=async (req:Request,res:Response)=>{
 
    const data=req.query
+   const pageData=req.pagination!
    try{
-    const record=await getRecordsService(data)
+    const result=await getRecordsService(data,pageData)
     return res.status(200).json({
-        data:record,
-        count:record.length
+       result
     })
    }
    catch(e){
@@ -43,7 +43,7 @@ export const createRecord=async(req:Request,res:Response)=>{
         })
     }
     try{
-        const record=await createRecordService(parsedData.data,(req as any).user?.userId)
+        const record=await createRecordService(parsedData.data,req.user!.userId)
         return res.status(201).json({message:"record created",record})
     }
     catch(e){

@@ -18,7 +18,7 @@ enum RecordType {
   EXPENSE
 }
 
-model User {
+ model User {
   id           String   @id @default(uuid())
   username     String   @unique
   email        String   @unique
