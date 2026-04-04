@@ -16,7 +16,7 @@ export const getRecentActivity=async (req:Request,res:Response)=>{
     return res.status(200).json(result)
 }
 
-export const getTrends=async(req:Request,res:Response)=>{
+export const getMonthlyTrends=async(req:Request,res:Response)=>{
     const result=await getTrendsService()
     return res.status(200).json(result)
 }

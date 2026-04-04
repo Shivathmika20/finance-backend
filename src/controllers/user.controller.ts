@@ -72,10 +72,17 @@ export const assignRole = async (req: Request, res: Response) => {
 
 export const toggleStatus = async (req: Request, res: Response) => {
     const id  =  req.params['id'] as string
-    const {status}=req.body
+    const status=req.body.status as boolean
+
+    if (typeof status !== 'boolean') {
+        return res.status(400).json({ message: "Status must be a boolean" })
+      }
     try{
         const user=await toggleStatusService(id,status,req.user?.userId)
-        return res.status(200).json({message:"User deactivated",user})
+        return res.status(200).json({ 
+            message: status ? "User activated" : "User deactivated", 
+            user 
+          })
     }
     catch(e){
         if (e instanceof Error){
