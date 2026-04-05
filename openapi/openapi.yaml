@@ -5,6 +5,16 @@ info:
     Express + TypeScript API for users, roles, financial records, and dashboard aggregates.
     Auth uses JWT (`Authorization: Bearer <token>`). Inactive users receive 403 on sign-in and protected routes.
 
+    **Who can access which user (accounts under `/api/users`)**
+
+    | Caller role | Access to user resources |
+    |-------------|---------------------------|
+    | **ADMIN**   | List all active users, read any user by id, assign roles, activate/deactivate accounts (cannot change own role or deactivate self). |
+    | **ANALYST** | No access — all `/api/users` operations return **403**. |
+    | **VIEWER**  | No access — all `/api/users` operations return **403**. |
+
+    There are no non-admin “my profile” user endpoints; non-admins only obtain identity indirectly via JWT after sign-in.
+
     Each operation includes a **cURL** sample (`x-codeSamples`). Replace `YOUR_JWT_TOKEN` with a token from `POST /api/auth/signin`.
   version: 1.0.0
 
@@ -19,13 +29,49 @@ servers:
 
 tags:
   - name: Auth
-    description: Sign up and sign in (no JWT)
+    description: |
+      Register and sign in. These routes do **not** require `Authorization`.
+
+      > info
+      > New accounts get role `VIEWER`. Responses from sign-in include a JWT for protected routes.
+
   - name: Records
-    description: Financial records — read for ADMIN/ANALYST; write ADMIN only
+    description: |
+      Income and expense records: list, filter, create, update, and soft-delete.
+
+      ### Who can access
+
+      | Action | `ADMIN` | `ANALYST` | `VIEWER` |
+      |--------|:-------:|:---------:|:--------:|
+      | Read (`GET /api/records`, `GET .../{id}`) | Yes | Yes | No — **403** |
+      | Write (`POST`, `PATCH`, `DELETE`) | Yes | No — **403** | No — **403** |
+
   - name: Users
-    description: User management — ADMIN only
+    description: |
+      User directory and account administration under `/api/users`.
+
+      ### Who can access
+
+      | Action | `ADMIN` | `ANALYST` | `VIEWER` |
+      |--------|:-------:|:---------:|:--------:|
+      | List / read / role / status | Yes | No — **403** | No — **403** |
+
+      > warn
+      > An admin **cannot** change their own role or deactivate their own account.
+
   - name: Dashboard
-    description: Aggregates — VIEWER sees summary only; other dashboard routes need ANALYST or ADMIN
+    description: |
+      Summary totals and deeper analytics over non-deleted records.
+
+      ### Who can access
+
+      | Route | `VIEWER` | `ANALYST` | `ADMIN` |
+      |-------|:--------:|:---------:|:-------:|
+      | `GET /api/dashboard` (summary) | Yes | Yes | Yes |
+      | `GET /api/dashboard/category` | No — **403** | Yes | Yes |
+      | `GET /api/dashboard/recent` | No — **403** | Yes | Yes |
+      | `GET /api/dashboard/monthlytrends` | No — **403** | Yes | Yes |
+      | `GET /api/dashboard/weeklytrends` | No — **403** | Yes | Yes |
 
 paths:
   /api/auth/signup:
@@ -304,6 +350,8 @@ paths:
     get:
       tags: [Users]
       summary: List active users (paginated)
+      description: |
+        **ADMIN** only. Returns profiles for all active users. **VIEWER** and **ANALYST** get **403**.
       security:
         - bearerAuth: []
       parameters:
@@ -335,6 +383,8 @@ paths:
     get:
       tags: [Users]
       summary: Get user by id
+      description: |
+        **ADMIN** only. Read any user by `id`. **VIEWER** and **ANALYST** get **403**.
       security:
         - bearerAuth: []
       parameters:
@@ -369,7 +419,8 @@ paths:
     patch:
       tags: [Users]
       summary: Assign role
-      description: Cannot change your own role.
+      description: |
+        **ADMIN** only. **VIEWER** and **ANALYST** get **403**. Cannot change your own role.
       security:
         - bearerAuth: []
       parameters:
@@ -412,7 +463,8 @@ paths:
     patch:
       tags: [Users]
       summary: Activate or deactivate user
-      description: Cannot deactivate yourself.
+      description: |
+        **ADMIN** only. **VIEWER** and **ANALYST** get **403**. Cannot deactivate yourself.
       security:
         - bearerAuth: []
       parameters:
@@ -675,6 +727,8 @@ components:
       enum: [INCOME, EXPENSE]
 
     UserPublic:
+      description: |
+        Public user shape returned after signup and in admin user APIs. Only **ADMIN** may read or list users via `/api/users`; other roles do not receive this resource from those endpoints.
       type: object
       properties:
         id:
