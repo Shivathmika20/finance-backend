@@ -50,7 +50,7 @@ export const signup = async (req: Request, res: Response) => {
 	} 
 	catch (e) {
 		if (e instanceof Prisma.PrismaClientValidationError) {
-			return res.status(400).json({ message: e.message });
+			return res.status(400).json({ message: (e as Error).message });
 		}
 		const message = e instanceof Error ? e.message : "Unknown error";
 		return res.status(500).json({ message });
@@ -82,14 +82,15 @@ export const signin = async (req: Request, res: Response) => {
 		const isPasswordValid = await bcrypt.compare(password, user?.password);
 
 		if (isPasswordValid) {
-			if (!jwt_secret) {
-				return res
-					.status(400)
-					.json({ message: "JWT_SECRET is not set" });
+			if (!user.isActive) {
+				return res.status(403).json({
+					message: "Account has been deactivated",
+				});
 			}
 			const token = jwt.sign(
 				{ userId: user.id, role: user.role },
 				jwt_secret,
+				{expiresIn:'6h'}
 			);
 			return res.status(200).json({ token, message: "Login successful" });
 		} else {

@@ -24,6 +24,8 @@ export type Pagination={
   skip:number,
 
 }
+
+
 export const createRecordService=async (
     recordData:RecordInput,
     userId:string
@@ -44,11 +46,15 @@ export const createRecordService=async (
 export const getRecordsService = async (filters:Filter,pages:Pagination) => {
     const { type, category, startDate, endDate, search} = filters
     const {page,limit,skip}=pages
+    const categoryFilter =
+      typeof category === 'string' && category.length > 0
+        ? category.toLowerCase()
+        : undefined
 
      const where= {
         isDeleted: false,
         ...(type && { type }),
-        ...(category && { category }),
+        ...(categoryFilter && { category: categoryFilter }),
         ...((startDate || endDate) && {
             date: {
               ...(startDate && { gte: new Date(startDate) }),

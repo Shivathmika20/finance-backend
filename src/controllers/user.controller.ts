@@ -5,16 +5,6 @@ import { assignRoleService, getUserPagesService, toggleStatusService } from "../
 
 
 export const getAllUsers = async (req: Request, res: Response) => {
-	
-	// 	select: {
-	// 		id: true,
-	// 		username: true,
-	// 		email: true,
-	// 		role: true,
-	// 		isActive: true,
-	// 		createdAt: true,
-	// 	},
-	// });
     const pageData=req.pagination!
     try{
         const result=await getUserPagesService(pageData)
@@ -22,9 +12,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
 		message:"Fetched successfully",
         result
 	    });
-    }catch(e){
-        return res.status(500).json({ message: e })
-
+    } catch (e) {
+        const message =
+            e instanceof Error ? e.message : "Internal server error";
+        return res.status(500).json({ message });
     }
 };
 
@@ -47,17 +38,17 @@ export const getUser = async (req: Request, res: Response) => {
         }
         return res.status(200).json({user})
     }
-    catch(e){
-        return res.status(500).json({ message: e })
-
+    catch (e) {
+        const message =
+            e instanceof Error ? e.message : "Internal server error";
+        return res.status(500).json({ message });
     }
 };
 
 export const assignRole = async (req: Request, res: Response) => {
     const id  =  req.params['id'] as string
-    const role=req.body
     try{
-        const user=await assignRoleService(id,role,req.user?.userId)
+        const user=await assignRoleService(id,req.body,req.user?.userId)
         return res.status(200).json({message:"Role updated",user})
     }
     catch(e){

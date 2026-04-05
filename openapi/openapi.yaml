@@ -1,0 +1,1015 @@
+openapi: 3.0.3
+info:
+  title: Finance API
+  description: |
+    Express + TypeScript API for users, roles, financial records, and dashboard aggregates.
+    Auth uses JWT (`Authorization: Bearer <token>`). Inactive users receive 403 on sign-in and protected routes.
+
+    Each operation includes a **cURL** sample (`x-codeSamples`). Replace `YOUR_JWT_TOKEN` with a token from `POST /api/auth/signin`.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: "{baseUrl}"
+    description: Replace with your deployed API origin (no trailing slash)
+    variables:
+      baseUrl:
+        default: https://api.example.com
+
+tags:
+  - name: Auth
+    description: Sign up and sign in (no JWT)
+  - name: Records
+    description: Financial records — read for ADMIN/ANALYST; write ADMIN only
+  - name: Users
+    description: User management — ADMIN only
+  - name: Dashboard
+    description: Aggregates — VIEWER sees summary only; other dashboard routes need ANALYST or ADMIN
+
+paths:
+  /api/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      description: Creates a user with role VIEWER by default. Returns 409 if username or email exists.
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X POST 'http://localhost:3000/api/auth/signup' \
+              -H 'Content-Type: application/json' \
+              -d '{"username":"newuser","email":"newuser@example.com","password":"secret12"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignupResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Username or email already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/auth/signin:
+    post:
+      tags: [Auth]
+      summary: Sign in
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X POST 'http://localhost:3000/api/auth/signin' \
+              -H 'Content-Type: application/json' \
+              -d '{"email":"admin@finance.com","password":"admin123"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SigninRequest"
+      responses:
+        "200":
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SigninResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Unknown user or invalid password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "403":
+          description: Account deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/records:
+    get:
+      tags: [Records]
+      summary: List records (paginated, filterable)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/RecordType"
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Inclusive lower bound for record `date`
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          description: Inclusive upper bound for record `date`
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Matches category or notes (contains)
+          schema:
+            type: string
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -G 'http://localhost:3000/api/records' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+              --data-urlencode 'page=1' \
+              --data-urlencode 'limit=10' \
+              --data-urlencode 'type=EXPENSE' \
+              --data-urlencode 'category=Food' \
+              --data-urlencode 'startDate=2024-01-01' \
+              --data-urlencode 'endDate=2024-12-31' \
+              --data-urlencode 'search=grocery'
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecordsListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    post:
+      tags: [Records]
+      summary: Create a record
+      security:
+        - bearerAuth: []
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X POST 'http://localhost:3000/api/records' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+              -H 'Content-Type: application/json' \
+              -d '{"amount":100.5,"type":"INCOME","category":"Salary","date":"2024-06-01T00:00:00.000Z","notes":"June pay"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecordRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRecordResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/records/{id}:
+    get:
+      tags: [Records]
+      summary: Get one record
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordId"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/records/1' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Record (not soft-deleted)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecordFull"
+        "400":
+          description: Invalid id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      tags: [Records]
+      summary: Partial update
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRecordRequest"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X PATCH 'http://localhost:3000/api/records/1' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+              -H 'Content-Type: application/json' \
+              -d '{"amount":200,"category":"Updated category","notes":"patched"}'
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateRecordResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      tags: [Records]
+      summary: Soft delete
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/recordId"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X DELETE 'http://localhost:3000/api/records/1' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Record marked deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteRecordResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List active users (paginated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -G 'http://localhost:3000/api/users' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+              --data-urlencode 'page=1' \
+              --data-urlencode 'limit=10'
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/users/550e8400-e29b-41d4-a716-446655440000' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Wrapped user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Assign role
+      description: Cannot change your own role.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignRoleRequest"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X PATCH 'http://localhost:3000/api/users/550e8400-e29b-41d4-a716-446655440000/role' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+              -H 'Content-Type: application/json' \
+              -d '{"role":"ANALYST"}'
+      responses:
+        "200":
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignRoleResponse"
+        "400":
+          description: Validation or business rule error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/users/{id}/status:
+    patch:
+      tags: [Users]
+      summary: Activate or deactivate user
+      description: Cannot deactivate yourself.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/userId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleStatusRequest"
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS -X PATCH 'http://localhost:3000/api/users/550e8400-e29b-41d4-a716-446655440000/status' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+              -H 'Content-Type: application/json' \
+              -d '{"status":false}'
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToggleStatusResponse"
+        "400":
+          description: Invalid body or business rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnly"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Income / expense / net totals
+      security:
+        - bearerAuth: []
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/dashboard' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Totals for non-deleted records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/dashboard/category:
+    get:
+      tags: [Dashboard]
+      summary: Sum per category
+      security:
+        - bearerAuth: []
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/dashboard/category' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Category totals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryTotal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/dashboard/recent:
+    get:
+      tags: [Dashboard]
+      summary: Five most recently created records
+      security:
+        - bearerAuth: []
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/dashboard/recent' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Recent records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecordFull"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/dashboard/monthlytrends:
+    get:
+      tags: [Dashboard]
+      summary: Monthly aggregates by type (SQL)
+      security:
+        - bearerAuth: []
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/dashboard/monthlytrends' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Raw query rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrendRow"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/dashboard/weeklytrends:
+    get:
+      tags: [Dashboard]
+      summary: Weekly aggregates by type (SQL)
+      security:
+        - bearerAuth: []
+      x-codeSamples:
+        - lang: curl
+          label: cURL
+          source: |
+            curl -sS 'http://localhost:3000/api/dashboard/weeklytrends' \
+              -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+      responses:
+        "200":
+          description: Raw query rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyTrendRow"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Obtain a token via `POST /api/auth/signin`.
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 5
+    recordId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    userId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Validation error (Zod)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageOnly"
+    Forbidden:
+      description: Wrong role or inactive account
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageOnly"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageOnly"
+    ServerError:
+      description: Internal error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageOnly"
+
+  schemas:
+    MessageOnly:
+      type: object
+      properties:
+        message:
+          type: string
+      additionalProperties: true
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        issues:
+          type: array
+          items: {}
+      additionalProperties: true
+
+    Role:
+      type: string
+      enum: [VIEWER, ADMIN, ANALYST]
+
+    RecordType:
+      type: string
+      enum: [INCOME, EXPENSE]
+
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      additionalProperties: true
+
+    UserListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      additionalProperties: true
+
+    SignupRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          maxLength: 10
+
+    SignupResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        userInfo:
+          $ref: "#/components/schemas/UserPublic"
+      additionalProperties: true
+
+    SigninRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          maxLength: 10
+
+    SigninResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        message:
+          type: string
+      additionalProperties: true
+
+    RecordListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          $ref: "#/components/schemas/RecordType"
+        amount:
+          description: Decimal serialized as string in JSON
+          type: string
+        category:
+          type: string
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      additionalProperties: true
+
+    RecordFull:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          $ref: "#/components/schemas/RecordType"
+        amount:
+          type: string
+        category:
+          type: string
+        date:
+          type: string
+          format: date-time
+        isDeleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        userId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      additionalProperties: true
+
+    PaginatedRecords:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecordListItem"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+    RecordsListResponse:
+      type: object
+      properties:
+        result:
+          $ref: "#/components/schemas/PaginatedRecords"
+      additionalProperties: true
+
+    CreateRecordRequest:
+      type: object
+      required: [amount, type, category, date]
+      properties:
+        amount:
+          type: number
+          exclusiveMinimum: 0
+        type:
+          $ref: "#/components/schemas/RecordType"
+        category:
+          type: string
+          minLength: 1
+        date:
+          type: string
+          description: Parseable date string
+        notes:
+          type: string
+
+    CreateRecordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        record:
+          $ref: "#/components/schemas/RecordFull"
+      additionalProperties: true
+
+    UpdateRecordRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          exclusiveMinimum: 0
+        type:
+          $ref: "#/components/schemas/RecordType"
+        category:
+          type: string
+        date:
+          type: string
+        notes:
+          type: string
+
+    UpdateRecordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        record:
+          $ref: "#/components/schemas/RecordFull"
+      additionalProperties: true
+
+    DeleteRecordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        record:
+          $ref: "#/components/schemas/RecordFull"
+      additionalProperties: true
+
+    UsersListResult:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserListItem"
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    UsersListResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        result:
+          $ref: "#/components/schemas/UsersListResult"
+      additionalProperties: true
+
+    GetUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserPublic"
+      additionalProperties: true
+
+    AssignRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
+
+    UserRoleUpdate:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        isActive:
+          type: boolean
+
+    AssignRoleResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserRoleUpdate"
+      additionalProperties: true
+
+    ToggleStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: boolean
+
+    ToggleStatusResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserRoleUpdate"
+      additionalProperties: true
+
+    DashboardSummary:
+      type: object
+      properties:
+        incomeTotal:
+          type: number
+        expenseTotal:
+          type: number
+        netBalance:
+          type: number
+      additionalProperties: true
+
+    CategoryTotal:
+      type: object
+      properties:
+        category:
+          type: string
+        total:
+          description: May be number or string depending on serialization
+          oneOf:
+            - type: number
+            - type: string
+      additionalProperties: true
+
+    TrendRow:
+      type: object
+      properties:
+        month:
+          type: string
+          description: YYYY-MM
+        type:
+          $ref: "#/components/schemas/RecordType"
+        total:
+          type: number
+      additionalProperties: true
+
+    WeeklyTrendRow:
+      type: object
+      properties:
+        week:
+          type: string
+          description: Week start date from SQLite expression
+        type:
+          $ref: "#/components/schemas/RecordType"
+        total:
+          type: number
+      additionalProperties: true
+
+security: []

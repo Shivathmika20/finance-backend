@@ -29,12 +29,11 @@ export const verifyJwt=async (req:Request,res:Response,next:NextFunction)=>{
           }
 
           
-         // a deactivated user with valid token should still be blocked
         if(!user.isActive){
             return res.status(403).json({message:'Account has been deactivated'})
         }
-      
-        req.user=decoded;
+
+        req.user = { userId: decoded.userId, role: user.role };
        
         next(); 
     }

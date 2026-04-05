@@ -3,18 +3,16 @@ import {assignRoleSchema} from '../validation/assignrole.type'
 import { Pagination } from "./record.service";
 
 
-export const assignRoleService=async (
-    id:string,
-    role:string,
-    requestingUserId: string | undefined
-)=>{
-    if(id===requestingUserId){
-       throw new Error("Cannot change your own role") // prevent admin from locking themselves out
-    }
-    console.log(requestingUserId)
+export const assignRoleService = async (
+	id: string,
+	body: unknown,
+	requestingUserId: string | undefined,
+) => {
+	if (id === requestingUserId) {
+		throw new Error("Cannot change your own role");
+	}
 
-    const parsed=assignRoleSchema.safeParse(role)  //validate role before checking
-    console.log(parsed.data)
+	const parsed = assignRoleSchema.safeParse(body);
     if(!parsed.success){
         throw new Error ("Invalid role")
     }

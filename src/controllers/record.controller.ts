@@ -13,25 +13,30 @@ export const getAllRecords=async (req:Request,res:Response)=>{
        result
     })
    }
-   catch(e){
-    return res.status(500).json({ message: "Internal server error" ,e})
-
+   catch{
+    return res.status(500).json({ message: "Internal server error" })
    }
 }
 
-export const getRecord=async (req:Request,res:Response)=>{
-    const recordId = parseInt(req.params['id'] as string)
-    const record=await prisma.record.findUnique({
-    where:{id:recordId}
-    })
-
-    if (!record || record.isDeleted) {
-        return res.status(404).json({ message: 'Record not found' })
+export const getRecord = async (req: Request, res: Response) => {
+    const recordId = parseInt(req.params["id"] as string, 10);
+    if (Number.isNaN(recordId)) {
+        return res.status(400).json({ message: "Invalid record id" });
     }
+    try {
+        const record = await prisma.record.findUnique({
+            where: { id: recordId },
+        });
 
-    return res.status(200).json(record)
+        if (!record || record.isDeleted) {
+            return res.status(404).json({ message: "Record not found" });
+        }
 
-}
+        return res.status(200).json(record);
+    } catch {
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
 
 export const createRecord=async(req:Request,res:Response)=>{
     const parsedData=createRecordSchema.safeParse(req.body)

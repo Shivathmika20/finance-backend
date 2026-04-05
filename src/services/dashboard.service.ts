@@ -1,5 +1,7 @@
 import prisma from "../lib/prisma";
 
+
+
 export const getTotalServcie=async ()=>{
     const total=await prisma.record.groupBy({
         by:['type'],
@@ -45,7 +47,7 @@ export const getRecentService=async()=>{
     })
 }
 
-export const getTrendsService=async()=>{
+export const getMonthlyTrendsService = async () => {
     const trends = await prisma.$queryRaw`
         SELECT 
             strftime('%Y-%m', date) as month,
@@ -56,5 +58,19 @@ export const getTrendsService=async()=>{
         GROUP BY month, type
         ORDER BY month ASC
     `
-    return trends;
+    return trends
+}
+
+export const getWeeklyTrendsService = async () => {
+    const trends = await prisma.$queryRaw`
+        SELECT 
+            date(date, printf('-%d days', (cast(strftime('%w', date) AS INTEGER) + 6) % 7)) as week,
+            type,
+            SUM(CAST(amount AS REAL)) as total
+        FROM "Record"
+        WHERE "isDeleted" = 0
+        GROUP BY week, type
+        ORDER BY week ASC
+    `
+    return trends
 }

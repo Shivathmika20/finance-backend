@@ -7,7 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "docs:preview": "bump preview openapi/openapi.yaml",
+    "docs:preview:live": "bump preview --live openapi/openapi.yaml",
+    "docs:deploy": "bump deploy openapi/openapi.yaml",
+    "docs:validate": "bump deploy openapi/openapi.yaml --dry-run"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +38,7 @@
     "@types/node": "^25.5.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "bump-cli": "^2.9.12"
   }
 }
