@@ -21,7 +21,11 @@ app.use('/api/users', userRouter);
 app.use('/api/dashboard', dashboardRouter);
 
 
-
+app.get('/',(req,res)=>{
+	return res.json({
+		message:"Hi Welcome"
+	})
+})
 app.listen(3000, () => {
     console.log("Server is running on port 3000");
     
